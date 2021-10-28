@@ -75,6 +75,7 @@ def main():
 
   # Environment
   DOCUMENT_UNIT = getUnit()
+  # TODO: remove class below if it is still unused
   class PageUnit(Enum):
     PT = 0
     MM = 1
@@ -85,15 +86,33 @@ def main():
 
   DOCUMENT_PAGE_COUNT = pageCount()
 
-  # TODO: Prompt for first page order. eg: 1, 2, 3... 100, etc. (default 1)
-  DOCUMENT_PAGE_ORDER = 1
+  # TODO: Prompt for first page number. eg: 1, 2, 3... 100, etc. (default 1)
+  DOCUMENT_PAGE_NUMBER = 1
+  # TODO: Prompt for first page index. eg: 0, 1, 2... 100, etc. (default 0)
+  DOCUMENT_PAGE_ORDER = 0
 
-  # TODO:
-  # Ask if the first page is different for cases like facing pages, etc.
-  PAGE_CURRENT = currentPage()
 
+  DOCUMENT_PAGES = [None] * (DOCUMENT_PAGE_COUNT + 1)
   for page_index in range(1, DOCUMENT_PAGE_COUNT + 1):
-    popmsg("Page Info: " + str(page_index), str(pageInfo(page_index)))
+    DOCUMENT_PAGES[page_index] = pageInfo(page_index)
+    #popmsg("Page Info: " + str(page_index), str(pageInfo(page_index)))
+
+  # TODO: Find out the document page layout
+  # First page is always left, unless it is with facing or folding pages. Then
+  # there would be a left, (middle,) and right.
+  DOCUMENT_BASE = DOCUMENT_PAGES[0]
+
+  # Check if the second page is left.
+  if str(DOCUMENT_PAGES[2]["type"]) == "PageType.LEFT":
+    #popmsg("document pages", "SINGLE PAGE")
+    DOCUMENT_TYPE = "PAGE_1"
+  else:
+    # TODO: prompt if it is double/triple/quadruple
+    DOCUMENT_TYPE = "PAGE_2"
+    DOCUMENT_BASE = DOCUMENT_PAGES[2]
+    #popmsg("document pages", "not SINGLE PAGE")
+    #popmsg("document pages", str(DOCUMENT_PAGES[1]["type"]))
+
 
   #
   # Methods I wish can be implemented:
@@ -103,14 +122,48 @@ def main():
   #
   #   getDocument(nr) - opens the nr'th integer document within the script
   #
+  #   getPagesType() - returns what type of pages are in use, eg: PAGE_1 is
+  #                   single page, PAGE_2 is for double sided documents, PAGE_3
+  #                   is for 3 pages fold and PAGE_4 is 4-fold.
+  #
   #
 
+  # TODO: complete this... eventually
   # Create the new document
   #newDocument(size, margins, orientation, firstPageNumber,
   #            unit, pagesType, firstPageOrder, numPages)
 
+  DOCUMENT_BASE = DOCUMENT_PAGES[1]
+  popmsg("title", str(DOCUMENT_PAGES[1]))
+  popmsg("title", str(type(DOCUMENT_BASE["size"])) +
+                  str(type(DOCUMENT_BASE["margins"])) +
+                  str(type(DOCUMENT_BASE["orientation"])) +
+                  str(type(int(DOCUMENT_PAGE_NUMBER))) +
+                  str(type(int(DOCUMENT_UNIT))) +
+                  str(type(DOCUMENT_TYPE)) +
+                  str(type(int(DOCUMENT_PAGE_ORDER))) +
+                  str(type(int(DOCUMENT_PAGE_COUNT)))
+    )
+  popmsg("title", "orientation?" + str(scribus.ORIENTATION))
 
+  #
+  # TODO: figure out WHICH ARGUMENT NEEDS THAT INTEGER!
+  newDocument(DOCUMENT_BASE["size"], DOCUMENT_BASE["margins"],
+              DOCUMENT_BASE["orientation"], int(DOCUMENT_PAGE_NUMBER),
+              int(DOCUMENT_UNIT), DOCUMENT_TYPE, int(DOCUMENT_PAGE_ORDER),
+              int(DOCUMENT_PAGE_COUNT))
+  #  Traceback (most recent call last):
+  #  File "<string>", line 11, in <module>
+  #  File "<string>", line 163, in <module>
+  #  File "<string>", line 149, in main
+  #TypeError: an integer is required (got type str)
 
+  #newDocument(touple, touple, string??, integer?,
+  #            integer?, string?, integer, integer?)
+
+  # dunno if it's one of the constant variables or something...
+  # I don't know how to access the special variables :(
+  # popmsg("title", "orientation?" + str(ORIENTATION))
 
 
 
