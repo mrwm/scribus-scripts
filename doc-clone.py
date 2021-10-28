@@ -30,9 +30,9 @@ def pageInfo(page_index=1):
   gotoPage(page_index)
   PAGE_SIZE = getPageSize()
 
-  PAGE_ORIENTATION = "PORTRAIT"
+  PAGE_ORIENTATION = scribus.PORTRAIT
   if PAGE_SIZE[0] > PAGE_SIZE[1]:
-    PAGE_ORIENTATION = "LANDSCAPE"
+    PAGE_ORIENTATION = scribus.LANDSCAPE
 
   PAGE_MARGINS = getPageMargins()
   # TODO: Change page size with:
@@ -75,23 +75,12 @@ def main():
 
   # Environment
   DOCUMENT_UNIT = getUnit()
-  # TODO: remove class below if it is still unused
-  class PageUnit(Enum):
-    PT = 0
-    MM = 1
-    IN = 2
-    P  = 3
-    CM = 4
-    C  = 5
-
   DOCUMENT_PAGE_COUNT = pageCount()
 
   # TODO: Prompt for first page number. eg: 1, 2, 3... 100, etc. (default 1)
   DOCUMENT_PAGE_NUMBER = 1
-  # TODO: Prompt for first page index. eg: 0, 1, 2... 100, etc. (default 0)
-  DOCUMENT_PAGE_ORDER = 0
 
-
+  # Note: The index follows the page count. eg: page 0 is nothing
   DOCUMENT_PAGES = [None] * (DOCUMENT_PAGE_COUNT + 1)
   for page_index in range(1, DOCUMENT_PAGE_COUNT + 1):
     DOCUMENT_PAGES[page_index] = pageInfo(page_index)
@@ -100,18 +89,19 @@ def main():
   # TODO: Find out the document page layout
   # First page is always left, unless it is with facing or folding pages. Then
   # there would be a left, (middle,) and right.
-  DOCUMENT_BASE = DOCUMENT_PAGES[0]
+  DOCUMENT_BASE = DOCUMENT_PAGES[1]
+  DOCUMENT_TYPE = scribus.NOFACINGPAGES
+  DOCUMENT_PAGE_ORDER = scribus.FIRSTPAGELEFT
 
-  # Check if the second page is left.
-  if str(DOCUMENT_PAGES[2]["type"]) == "PageType.LEFT":
-    #popmsg("document pages", "SINGLE PAGE")
-    DOCUMENT_TYPE = "PAGE_1"
-  else:
-    # TODO: prompt if it is double/triple/quadruple
-    DOCUMENT_TYPE = "PAGE_2"
-    DOCUMENT_BASE = DOCUMENT_PAGES[2]
-    #popmsg("document pages", "not SINGLE PAGE")
-    #popmsg("document pages", str(DOCUMENT_PAGES[1]["type"]))
+  if (DOCUMENT_PAGE_COUNT > 2):
+    # Check if the second page is left.
+    if str(DOCUMENT_PAGES[2]["type"]) != "PageType.LEFT":
+      DOCUMENT_TYPE = scribus.FACINGPAGES
+      DOCUMENT_BASE = DOCUMENT_PAGES[2]
+
+      # Then check if first page is left
+      if str(DOCUMENT_PAGES[1]["type"]) != "PageType.LEFT":
+        DOCUMENT_PAGE_ORDER = scribus.FIRSTPAGERIGHT
 
 
   #
@@ -127,45 +117,32 @@ def main():
   #                   is for 3 pages fold and PAGE_4 is 4-fold.
   #
   #
+  #   Notes (and maybe some complaints):
+  #     - why can't getUnit() return scribus.UNIT_<value>?
+  #     - similarly, why can't I just pass the integer value to functions
+  #       instead of the constant variable name? eg: scribus.UNIT_POINTS -> 0
+  #
+
+  # move old items to new doc?
+  listOfItems = getPageItems()
+  msg = [None] * len(listOfItems)
+  for itemIndex in range(len(listOfItems)):
+    msg[itemIndex] = str(listOfItems[itemIndex][0])
+  copyObjects(msg)
+  popmsg("title", str(msg))
 
   # TODO: complete this... eventually
   # Create the new document
-  #newDocument(size, margins, orientation, firstPageNumber,
-  #            unit, pagesType, firstPageOrder, numPages)
-
-  DOCUMENT_BASE = DOCUMENT_PAGES[1]
-  popmsg("title", str(DOCUMENT_PAGES[1]))
-  popmsg("title", str(type(DOCUMENT_BASE["size"])) +
-                  str(type(DOCUMENT_BASE["margins"])) +
-                  str(type(DOCUMENT_BASE["orientation"])) +
-                  str(type(int(DOCUMENT_PAGE_NUMBER))) +
-                  str(type(int(DOCUMENT_UNIT))) +
-                  str(type(DOCUMENT_TYPE)) +
-                  str(type(int(DOCUMENT_PAGE_ORDER))) +
-                  str(type(int(DOCUMENT_PAGE_COUNT)))
-    )
-  popmsg("title", "orientation?" + str(scribus.ORIENTATION))
-
-  #
-  # TODO: figure out WHICH ARGUMENT NEEDS THAT INTEGER!
   newDocument(DOCUMENT_BASE["size"], DOCUMENT_BASE["margins"],
               DOCUMENT_BASE["orientation"], int(DOCUMENT_PAGE_NUMBER),
-              int(DOCUMENT_UNIT), DOCUMENT_TYPE, int(DOCUMENT_PAGE_ORDER),
+              DOCUMENT_UNIT, DOCUMENT_TYPE, int(DOCUMENT_PAGE_ORDER),
               int(DOCUMENT_PAGE_COUNT))
-  #  Traceback (most recent call last):
-  #  File "<string>", line 11, in <module>
-  #  File "<string>", line 163, in <module>
-  #  File "<string>", line 149, in main
-  #TypeError: an integer is required (got type str)
-
-  #newDocument(touple, touple, string??, integer?,
-  #            integer?, string?, integer, integer?)
-
-  # dunno if it's one of the constant variables or something...
-  # I don't know how to access the special variables :(
-  # popmsg("title", "orientation?" + str(ORIENTATION))
+  pasteObjects()
 
 
+
+  # Reference taken from FontSample.py
+  # scribus.newDocument(dD['paperSize'], dD['paperMargins'], scribus.PORTRAIT, 1, scribus.UNIT_POINTS, facingPages, scribus.FIRSTPAGERIGHT, 1)
 
 if __name__ == "__main__":
   main()
