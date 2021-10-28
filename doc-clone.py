@@ -3,13 +3,14 @@
 
 # doc-clone.py
 # Author: William Chung
-# Last Updated: 2021-10-27
+# Last Updated: 2021-10-28
 # Purpose: Clone the currently opened scribus document to a new document
 # Program Uses: Inside scribus, Script -> Execute Script
 #
 
 #from enum import Enum
 from time import sleep
+#from glob import glob
 
 try:
   from scribus import *
@@ -26,7 +27,8 @@ def popmsg(title, item="null"):
 def pageInfo(page_index=1):
   """
     Returns a dictionary of page information.
-    Information includes page size, orientation, margins, and page type.
+    Information includes page size, orientation, margins, page type, and a list
+    of objects that are on the page.
   """
   gotoPage(page_index)
   PAGE_SIZE = getPageSize()
@@ -53,6 +55,7 @@ def pageInfo(page_index=1):
   objectNames = [None] * len(listOfObjects)
   for objIndex in range(len(listOfObjects)):
     objectNames[objIndex] = str(listOfObjects[objIndex][0])
+  popmsg("title", str(listOfObjects))
 
   page_info = {
     "size" : PAGE_SIZE,
@@ -63,6 +66,8 @@ def pageInfo(page_index=1):
     }
   return page_info
 
+def layerInfo():
+  print()
 
 def main():
   """
@@ -79,9 +84,7 @@ def main():
       currentDocName = getDocName()
       print()
     else:
-      #popmsg("info", "No doc name\n" +
-      #       str(haveDoc()))
-      print()
+      popmsg("Document name needed", "No file name found.\n\nExiting")
     # TODO: Prompt which doc to use and doc name
     docChanged(True)
   else:
@@ -129,20 +132,22 @@ def main():
   #   getPageOrientation() - returns the scribus orientation value. eg:
   #                         scribus.PORTRAIT or scribus.LANDSCAPE
   #
+  #   getLayerObjects() - lists all objects on the current layer.
+  #                       similar to listOfObjects()
+  #
   #   Notes (and maybe some complaints):
   #     - why can't getUnit() return scribus.UNIT_<value>?
   #     - Why is it called firstPageOrder order when it is either
   #       scribus.FIRSTPAGERIGHT or scribus.FIRSTPAGELEFT?
-  #     - ...
+  #     - I also wish that getPageItems() can also include which layer it is on
   #
 
-  ## move old items to new doc?
-  #listOfItems = getPageItems()
-  #itemNames = [None] * len(listOfItems)
-  #for itemIndex in range(len(listOfItems)):
-  #  itemNames[itemIndex] = str(listOfItems[itemIndex][0])
-  copyObjects(pageInfo(1)["objects"]+pageInfo(2)["objects"]+pageInfo(3)["objects"])
-
+  # TODO: Check layer properties and also set them up in the new document
+  layerClipboad = []
+  for pageIndex in range(1, DocPageCount + 1):
+    layerClipboad += pageInfo(pageIndex)["objects"]
+  copyObjects(layerClipboad)
+  popmsg("title", str(layerClipboad))
   #sleep(3)
 
   # TODO: complete this... eventually
@@ -151,16 +156,19 @@ def main():
               DocReference["orientation"], DocPageNumber,
               DocUnit, DocType, DocPageOrder,
               DocPageCount)
-  scribus.zoomDocument(-100)
-
-  gotoPage(3)
+  gotoPage(DocPageCount)
   pasteObjects()
 
-  saveDocAs("test.sla")
+  # Get the source name and append "-copy"
+  currentDocName = currentDocName.rsplit(".", 1)[0]
+  currentDirectory = currentDocName.rsplit("/", 1)[0]
+  currentDocName = currentDocName[len(currentDirectory):len(currentDocName)]
+  newDocName = currentDirectory + currentDocName + "-copy.sla"
+  saveDocAs(newDocName)
 
+  #zoooooooom out haha
+  scribus.zoomDocument(-100)
 
-  # Reference taken from FontSample.py
-  # scribus.newDocument(dD['paperSize'], dD['paperMargins'], scribus.PORTRAIT, 1, scribus.UNIT_POINTS, facingPages, scribus.FIRSTPAGERIGHT, 1)
 
 if __name__ == "__main__":
   main()
