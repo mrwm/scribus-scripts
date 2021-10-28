@@ -105,16 +105,19 @@ def main():
   DocPageOrder = scribus.FIRSTPAGELEFT
 
   if (DocPageCount > 2):
+
     # Check if the second page is left.
     if pageInfo(2)["type"] == "LEFT":
-      DocType = scribus.FACINGPAGES
-
-      # Sometimes first page is non standard. Use second page info as reference
-      DocReference = pageInfo(2)
 
       # Then check if first page is left
       if str(pageInfo(1)["type"]) == "RIGHT":
         DocPageOrder = scribus.FIRSTPAGERIGHT
+      else:
+        # Sometimes first page is non standard.
+        # Use second page info as reference.
+        DocReference = pageInfo(2)
+        DocType = scribus.FACINGPAGES
+
 
   #
   # Methods I wish can be implemented:
