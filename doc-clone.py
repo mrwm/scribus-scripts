@@ -55,7 +55,6 @@ def pageInfo(page_index=1):
   objectNames = [None] * len(listOfObjects)
   for objIndex in range(len(listOfObjects)):
     objectNames[objIndex] = str(listOfObjects[objIndex][0])
-  popmsg("title", str(listOfObjects))
 
   page_info = {
     "size" : PAGE_SIZE,
@@ -147,7 +146,6 @@ def main():
   for pageIndex in range(1, DocPageCount + 1):
     layerClipboad += pageInfo(pageIndex)["objects"]
   copyObjects(layerClipboad)
-  popmsg("title", str(layerClipboad))
   #sleep(3)
 
   # TODO: complete this... eventually
