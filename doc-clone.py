@@ -8,7 +8,8 @@
 # Program Uses: Inside scribus, Script -> Execute Script
 #
 
-from enum import Enum
+#from enum import Enum
+from time import sleep
 
 try:
   from scribus import *
@@ -40,28 +41,42 @@ def pageInfo(page_index=1):
   #   PAGE_SIZE = (PAGE_SIZE[0], PAGE_SIZE[1])
   
   PAGE_TYPE = getPageType(page_index)
-  class PageType(Enum):
-    LEFT  = 0
-    MID   = 1
-    RIGHT = 2
+  if PAGE_TYPE == 0:
+    PAGE_TYPE = "LEFT"
+  if PAGE_TYPE == 1:
+    PAGE_TYPE = "MID"
+  if PAGE_TYPE == 2:
+    PAGE_TYPE = "RIGHT"
+
+  # move old items to new doc?
+  listOfObjects = getPageItems()
+  objectNames = [None] * len(listOfObjects)
+  for objIndex in range(len(listOfObjects)):
+    objectNames[objIndex] = str(listOfObjects[objIndex][0])
 
   page_info = {
     "size" : PAGE_SIZE,
     "orientation" : PAGE_ORIENTATION,
     "margins" : PAGE_MARGINS,
-    "type" : PageType(PAGE_TYPE)
+    "type" : PAGE_TYPE,
+    "objects" : objectNames
     }
   return page_info
+
 
 def main():
   """
     Doc string
   """
+
+  currentDocName = ""
+
   # Check if a doc is open and mark it as changed
   if haveDoc():
     if getDocName():
       #popmsg("info", "Doc name:  \n" + getDocName() +
       #       "\n docs currently open: " + str(haveDoc()))
+      currentDocName = getDocName()
       print()
     else:
       #popmsg("info", "No doc name\n" +
@@ -74,35 +89,30 @@ def main():
     sys.exit(1)
 
   # Environment
-  DOCUMENT_UNIT = getUnit()
-  DOCUMENT_PAGE_COUNT = pageCount()
+  DocUnit = getUnit()
+  DocPageCount = pageCount()
 
   # TODO: Prompt for first page number. eg: 1, 2, 3... 100, etc. (default 1)
-  DOCUMENT_PAGE_NUMBER = 1
+  DocPageNumber = 1
 
-  # Note: The index follows the page count. eg: page 0 is nothing
-  DOCUMENT_PAGES = [None] * (DOCUMENT_PAGE_COUNT + 1)
-  for page_index in range(1, DOCUMENT_PAGE_COUNT + 1):
-    DOCUMENT_PAGES[page_index] = pageInfo(page_index)
-    #popmsg("Page Info: " + str(page_index), str(pageInfo(page_index)))
-
-  # TODO: Find out the document page layout
+  # Find out the document page layout.
   # First page is always left, unless it is with facing or folding pages. Then
-  # there would be a left, (middle,) and right.
-  DOCUMENT_BASE = DOCUMENT_PAGES[1]
-  DOCUMENT_TYPE = scribus.NOFACINGPAGES
-  DOCUMENT_PAGE_ORDER = scribus.FIRSTPAGELEFT
+  # there would be a left, (middle,) and right. (0, 1, 2)
+  DocReference = pageInfo(1)
+  DocType = scribus.NOFACINGPAGES
+  DocPageOrder = scribus.FIRSTPAGELEFT
 
-  if (DOCUMENT_PAGE_COUNT > 2):
+  if (DocPageCount > 2):
     # Check if the second page is left.
-    if str(DOCUMENT_PAGES[2]["type"]) != "PageType.LEFT":
-      DOCUMENT_TYPE = scribus.FACINGPAGES
-      DOCUMENT_BASE = DOCUMENT_PAGES[2]
+    if pageInfo(2)["type"] == "LEFT":
+      DocType = scribus.FACINGPAGES
+
+      # Sometimes first page is non standard. Use second page info as reference
+      DocReference = pageInfo(2)
 
       # Then check if first page is left
-      if str(DOCUMENT_PAGES[1]["type"]) != "PageType.LEFT":
-        DOCUMENT_PAGE_ORDER = scribus.FIRSTPAGERIGHT
-
+      if str(pageInfo(1)["type"]) == "RIGHT":
+        DocPageOrder = scribus.FIRSTPAGERIGHT
 
   #
   # Methods I wish can be implemented:
@@ -116,29 +126,37 @@ def main():
   #                   single page, PAGE_2 is for double sided documents, PAGE_3
   #                   is for 3 pages fold and PAGE_4 is 4-fold.
   #
+  #   getPageOrientation() - returns the scribus orientation value. eg:
+  #                         scribus.PORTRAIT or scribus.LANDSCAPE
   #
   #   Notes (and maybe some complaints):
   #     - why can't getUnit() return scribus.UNIT_<value>?
-  #     - similarly, why can't I just pass the integer value to functions
-  #       instead of the constant variable name? eg: scribus.UNIT_POINTS -> 0
+  #     - Why is it called firstPageOrder order when it is either
+  #       scribus.FIRSTPAGERIGHT or scribus.FIRSTPAGELEFT?
+  #     - ...
   #
 
-  # move old items to new doc?
-  listOfItems = getPageItems()
-  msg = [None] * len(listOfItems)
-  for itemIndex in range(len(listOfItems)):
-    msg[itemIndex] = str(listOfItems[itemIndex][0])
-  copyObjects(msg)
-  popmsg("title", str(msg))
+  ## move old items to new doc?
+  #listOfItems = getPageItems()
+  #itemNames = [None] * len(listOfItems)
+  #for itemIndex in range(len(listOfItems)):
+  #  itemNames[itemIndex] = str(listOfItems[itemIndex][0])
+  copyObjects(pageInfo(1)["objects"]+pageInfo(2)["objects"]+pageInfo(3)["objects"])
+
+  #sleep(3)
 
   # TODO: complete this... eventually
   # Create the new document
-  newDocument(DOCUMENT_BASE["size"], DOCUMENT_BASE["margins"],
-              DOCUMENT_BASE["orientation"], int(DOCUMENT_PAGE_NUMBER),
-              DOCUMENT_UNIT, DOCUMENT_TYPE, int(DOCUMENT_PAGE_ORDER),
-              int(DOCUMENT_PAGE_COUNT))
+  newDocument(DocReference["size"], DocReference["margins"],
+              DocReference["orientation"], DocPageNumber,
+              DocUnit, DocType, DocPageOrder,
+              DocPageCount)
+  scribus.zoomDocument(-100)
+
+  gotoPage(3)
   pasteObjects()
 
+  saveDocAs("test.sla")
 
 
   # Reference taken from FontSample.py
